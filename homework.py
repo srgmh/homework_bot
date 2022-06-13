@@ -32,6 +32,7 @@ logging.basicConfig(
 
 
 def send_message(bot, message):
+    """Отправляет сообщение о результатах ревью."""
     bot.send_message(TELEGRAM_CHAT_ID, message)
 
 
@@ -39,23 +40,24 @@ def get_api_answer(current_timestamp):
     """Функция делает запрос к единственному эндпоинту API-сервиса.
     В качестве параметра функция получает временную метку.
     В случае успешного запроса должна вернуть ответ API,
-    преобразовав его из формата JSON к типам данных Python."""
-
+    преобразовав его из формата JSON к типам данных Python.
+    """
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
     if response.status_code != 200:
-        raise HTTPStatusError('API возвращает код не со статусом 200')
+        raise Exception('API возвращает код не со статусом 200')
     return response.json()
 
 
 def check_response(response):
     """Функция проверяет ответ API на корректность.
-    В качестве параметра функция получает ответ API, приведенный к типам данных Python.
+    В качестве параметра функция получает ответ API,
+    приведенный к типам данных Python.
     Если ответ API соответствует ожиданиям, то функция должна вернуть список
     домашних работ (он может быть и пустым),
-    доступный в ответе API по ключу 'homeworks'."""
-
+    доступный в ответе API по ключу 'homeworks'.
+    """
     if not isinstance(response, dict):
         raise TypeError('Ответ API не является словарем')
     if response is None:
@@ -70,11 +72,13 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """ Извлекает из информации о конкретной домашней работе статус этой работы.
-    В качестве параметра функция получает только один элемент из списка домашних работ.
-    В случае успеха, функция возвращает подготовленную для отправки в Telegram строку,
-    содержащую один из вердиктов словаря HOMEWORK_STATUSES."""
-
+    """Извлекает из информации о конкретной домашней работы.
+    статус этой работы. В качестве параметра функция
+    получает только один элемент из списка домашних работ.
+    В случае успеха, функция возвращает подготовленную
+    для отправки в Telegram строку,
+    содержащую один из вердиктов словаря HOMEWORK_STATUSES.
+    """
     if 'homework_name' not in homework:
         raise KeyError('ключа "homework_name" нет в данной домашней работе')
     homework_name = homework.get('homework_name')
@@ -85,7 +89,9 @@ def parse_status(homework):
     homework_status = homework.get('status')
 
     if homework_status not in HOMEWORK_STATUSES:
-        logging.error('недокументированный статус домашней работы, обнаруженный в ответе API')
+        logging.error(
+            'недокументированный статус домашней работы,'
+            'обнаруженный в ответе API')
         raise KeyError('неизвестный статус домашки')
 
     verdict = HOMEWORK_STATUSES.get(homework_status)
@@ -95,7 +101,6 @@ def parse_status(homework):
 
 def check_tokens():
     """Проверка доступности переменных окружения."""
-
     if PRACTICUM_TOKEN and TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         return True
     else:
@@ -104,7 +109,6 @@ def check_tokens():
 
 def main():
     """Основная логика работы бота."""
-
     if not check_tokens():
         logging.critical('Отсутствие обязательных переменных окружения.')
 
@@ -127,7 +131,8 @@ def main():
             message = parse_status(homework)
 
             try:
-                # Бот отправляет пользователю сообщение в телеграм со статусом работы.
+                # Бот отправляет пользователю сообщение
+                # в телеграм со статусом работы.
                 bot.send_message(TELEGRAM_CHAT_ID, message)
                 logging.info('Удачная отправка сообщения')
             except Exception as error:
